@@ -1,102 +1,35 @@
-# Kaggle Titanic — Машинное обучение для предсказания выживаемости
+# Kaggle Titanic Survival Prediction
 
-## Имя пользователя
+A tabular machine learning project that predicts passenger survival and exports a Kaggle submission file. It covers exploratory analysis, feature engineering, model comparison, and batch prediction.
 
-**Kaggle username:** `yerkanatnurmakhanov`
+The [executed notebook](notebook/executed-main.ipynb) records **82.38% mean accuracy** for the soft-voting ensemble over five stratified folds. Feature engineering was applied before cross-validation, so treat this as an exploratory estimate. The notebook reports local validation results.
 
-## Описание проекта
+## Prepare the data
 
-Проект решает задачу бинарной классификации: предсказать, кто из пассажиров выжил в катастрофе Титаника. В наборе данных содержится информация о пассажирах — возраст, пол, класс билета, размер семьи и другие признаки.
+Download `train.csv` and `test.csv` from the [Kaggle Titanic competition](https://www.kaggle.com/competitions/titanic/data) and put them in a `data/` directory at the repository root. Also download `gender_submission.csv` to the same directory if you want to rerun the notebook.
 
-Соревнование: https://www.kaggle.com/c/titanic
+## Train and generate a submission
 
-## Лучший результат на лидерборде
-
-| Метрика | Значение |
-|---------|----------|
-| Точность на публичном лидерборде | указать после отправки |
-| Точность по кросс-валидации (лучшая модель) | ~80%+ |
-
-## Признаковая инженерия (Feature Engineering)
-
-### Созданные и преобразованные признаки
-
-| Признак | Описание |
-|---------|----------|
-| `Title` | Титул из имени пассажира (Mr, Mrs, Miss, Master, Rare). Отражает социальный статус и пол. |
-| `FamilySize` | `SibSp + Parch + 1` — общий размер семьи. Большие семьи выживали хуже. |
-| `IsAlone` | Бинарный флаг: 1, если пассажир путешествовал один (FamilySize == 1). |
-| `FamilyType` | Категория: Alone / Small (2–4) / Large (5+). |
-| `Deck` | Первая буква номера каюты (A–G, Unknown). Связана с классом и расположением на судне. |
-| `HasCabin` | Бинарный флаг: 1, если каюта известна. |
-| `AgeBin` | Возраст, разбитый на 5 групп: Child / Teen / Young / Middle / Senior. |
-| `FareBin` | Стоимость билета, разбитая на 4 квартиля. Нормализует выбросы. |
-| `Age` (заполнен) | Пропуски заполнены медианой по группам Title × Pclass — точнее глобальной медианы. |
-| `Embarked` (заполнен) | Пропуски заполнены наиболее частым значением ('S'). |
-
-### Удалённые признаки
-- `Name` — после извлечения `Title`
-- `Ticket` — высокая кардинальность, низкая информативность
-- `Cabin` — после извлечения `Deck` и `HasCabin`
-- `PassengerId` — только идентификатор, оставлен для сабмита
-
-## Модель
-
-Ансамбль **Voting Classifier** (мягкое голосование) из четырёх моделей:
-- **Random Forest** (500 деревьев, max_depth=6)
-- **Gradient Boosting** (200 деревьев, learning_rate=0.05)
-- **Logistic Regression** (C=0.5)
-- **SVM** (ядро RBF, C=1)
-
-Гиперпараметры подобраны с помощью 5-кратной стратифицированной кросс-валидации.
-
-## Структура проекта
-
-```
-kaggle-titanic/
-│   README.md
-│   requirements.txt
-│   username.txt
-│
-└───data/
-│   │   train.csv
-│   │   test.csv
-│   │   gender_submission.csv
-│
-└───notebook/
-│   │   main.ipynb
-│
-└───scripts/
-    │   train.py
-    │   predict.py
-```
-
-## Запуск
-
-### 2. Подготовка окружения 
 ```bash
 python3 -m venv .venv
-```
-
-```bash
 source .venv/bin/activate
-```
-
-### 2. Установить зависимости
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Запустить ноутбук
-```bash
-jupyter notebook notebook/main.ipynb
-```
-
-### 4. Или использовать скрипты напрямую
-```bash
-# Обучить модель и сохранить
+python -m pip install numpy pandas scikit-learn joblib
 python scripts/train.py
-
-# Сгенерировать файл для отправки на Kaggle
 python scripts/predict.py
 ```
+
+The training script prints cross-validation accuracy and saves the model and feature list under `scripts/`. Prediction generates `data/submission.csv` with the `PassengerId` and `Survived` columns.
+
+To rerun the [notebook](notebook/main.ipynb), add the plotting and notebook dependencies and launch Jupyter from the `notebook/` directory:
+
+```bash
+python -m pip install jupyter matplotlib seaborn
+cd notebook
+jupyter notebook main.ipynb
+```
+
+## Modeling approach
+
+- Extract a title from each passenger's name and derive family size and solo travel indicators.
+- Use ticket class and title to estimate missing ages. Derive cabin-deck and fare-group features where available.
+- Combine random forest, gradient boosting, logistic regression, and a support vector machine using soft voting.
